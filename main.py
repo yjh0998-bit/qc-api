@@ -13,6 +13,10 @@ DB_CONFIG = {
     'charset': 'utf8mb4'
 }
 
+진행상황 = {0:'접수대기',1:'의뢰대기',2:'의뢰서작성중',3:'결과입력대기',4:'결과입력중',5:'결재대기',6:'검사완료'}
+시험구분 = {0:'사전검사',1:'입고검사',2:'생산검사',3:'관리검사',4:'협조시험',5:'기타'}
+적합여부 = {0:'부적합',1:'적합',2:'미정'}
+
 def get_db():
     return pymysql.connect(**DB_CONFIG)
 
@@ -26,22 +30,69 @@ class Handler(BaseHTTPRequestHandler):
         try:
             conn = get_db()
             cur = conn.cursor(pymysql.cursors.DictCursor)
+
             if path == '/':
                 result = {'status': 'ok'}
-            elif path == '/tables':
-                cur.execute('SHOW TABLES')
-                result = {'tables': cur.fetchall()}
-            elif path == '/data':
-                cur.execute('SELECT * FROM 접수 ORDER BY 1 DESC LIMIT 20')
-                result = {'data': cur.fetchall()}
-            elif path == '/columns':
-                cur.execute('DESCRIBE 접수')
-                result = {'columns': cur.fetchall()}
+
             elif path == '/today':
-                cur.execute('SELECT * FROM 접수 ORDER BY 1 DESC LIMIT 10')
-                result = {'today': cur.fetchall()}
+                cur.execute("""
+                    SELECT 접수번호, 접수일자, 시험구분, 진행상황, 품목코드, 
+                           적합여부, 시험담당자, 접수비고
+                    FROM 접수 
+                    WHERE 접수일자 = CURDATE()
+                    ORDER BY 접수번호 DESC
+                """)
+                rows = cur.fetchall()
+                for r in rows:
+                    r['진행상황_text'] = 진행상황.get(r.get('진행상황'), '알수없음')
+                    r['시험구분_text'] = 시험구분.get(r.get('시험구분'), '알수없음')
+                    r['적합여부_text'] = 적합여부.get(r.get('적합여부'), '미정')
+                result = {'date': '오늘', 'count': len(rows), 'data': rows}
+
+            elif path == '/pending':
+                cur.execute("""
+                    SELECT 접수번호, 접수일자, 시험구분, 진행상황, 품목코드,
+                           적합여부, 시험담당자
+                    FROM 접수 
+                    WHERE 진행상황 = 5
+                    ORDER BY 접수일자 DESC
+                """)
+                rows = cur.fetchall()
+                for r in rows:
+                    r['진행상황_text'] = '결재대기'
+                    r['시험구분_text'] = 시험구분.get(r.get('시험구분'), '알수없음')
+                    r['적합여부_text'] = 적합여부.get(r.get('적합여부'), '미정')
+                result = {'결재대기': len(rows), 'data': rows}
+
+            elif path == '/fail':
+                cur.execute("""
+                    SELECT 접수번호, 접수일자, 시험구분, 품목코드, 적합여부, 시험담당자
+                    FROM 접수 
+                    WHERE 적합여부 = 0
+                    ORDER BY 접수일자 DESC
+                    LIMIT 20
+                """)
+                rows = cur.fetchall()
+                for r in rows:
+                    r['적합여부_text'] = '부적합'
+                    r['시험구분_text'] = 시험구분.get(r.get('시험구분'), '알수없음')
+                result = {'부적합건수': len(rows), 'data': rows}
+
+            elif path == '/summary':
+                cur.execute("""
+                    SELECT 진행상황, COUNT(*) as 건수
+                    FROM 접수
+                    WHERE 접수일자 >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                    GROUP BY 진행상황
+                """)
+                rows = cur.fetchall()
+                for r in rows:
+                    r['진행상황_text'] = 진행상황.get(r.get('진행상황'), '알수없음')
+                result = {'이번주현황': rows}
+
             else:
-                result = {'error': 'not found'}
+                result = {'error': 'not found', 'available': ['/today', '/pending', '/fail', '/summary']}
+
             conn.close()
         except Exception as e:
             result = {'error': str(e)}
