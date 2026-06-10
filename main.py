@@ -7,8 +7,8 @@ from urllib.parse import urlparse, parse_qs
 DB_CONFIG = {
     'host': 'my8002.gabiadb.com',
     'port': 3306,
-    'user': 'admin',
-    'password': 'admin0306',
+    'user': 'daeyuadmin',
+    'password': 'asdzxcqwe123@',
     'database': 'daeyu',
     'charset': 'utf8mb4'
 }
