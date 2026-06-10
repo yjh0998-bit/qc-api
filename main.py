@@ -1,6 +1,7 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import pymysql
 import json
+import os
 from urllib.parse import urlparse, parse_qs
 
 DB_CONFIG = {
@@ -19,7 +20,6 @@ class APIHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
-        params = parse_qs(parsed.query)
 
         self.send_response(200)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
@@ -39,7 +39,6 @@ class APIHandler(BaseHTTPRequestHandler):
                 result = {'tables': tables}
 
             elif path == '/status':
-                # 테이블 구조 파악 후 수정 예정
                 cursor.execute('SHOW TABLES')
                 tables = cursor.fetchall()
                 result = {'status': 'connected', 'tables': tables}
@@ -57,6 +56,7 @@ class APIHandler(BaseHTTPRequestHandler):
         pass
 
 if __name__ == '__main__':
-    server = HTTPServer(('0.0.0.0', 8080), APIHandler)
-    print('QC API 서버 시작 - 포트 8080')
+    port = int(os.environ.get('PORT', 8080))
+    server = HTTPServer(('0.0.0.0', port), APIHandler)
+    print(f'QC API 서버 시작 - 포트 {port}')
     server.serve_forever()
