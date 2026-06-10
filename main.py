@@ -38,10 +38,25 @@ class APIHandler(BaseHTTPRequestHandler):
                 tables = cursor.fetchall()
                 result = {'tables': tables}
 
-            elif path == '/status':
-                cursor.execute('SHOW TABLES')
-                tables = cursor.fetchall()
-                result = {'status': 'connected', 'tables': tables}
+            elif path == '/접수':
+                cursor.execute('SELECT * FROM 접수 ORDER BY 1 DESC LIMIT 20')
+                rows = cursor.fetchall()
+                result = {'data': rows}
+
+            elif path == '/접수/컬럼':
+                cursor.execute('DESCRIBE 접수')
+                cols = cursor.fetchall()
+                result = {'columns': cols}
+
+            elif path == '/의뢰항목/컬럼':
+                cursor.execute('DESCRIBE 의뢰항목')
+                cols = cursor.fetchall()
+                result = {'columns': cols}
+
+            elif path == '/품목/컬럼':
+                cursor.execute('DESCRIBE 품목')
+                cols = cursor.fetchall()
+                result = {'columns': cols}
 
             else:
                 result = {'error': '알 수 없는 경로'}
