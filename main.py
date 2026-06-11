@@ -34,11 +34,15 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/':
                 result = {'status': 'ok'}
 
+            elif path == '/tables':
+                cur.execute('SHOW TABLES')
+                result = {'tables': cur.fetchall()}
+
             elif path == '/today':
                 cur.execute("""
-                    SELECT 접수번호, 접수일자, 시험구분, 진행상황, 품목코드, 
+                    SELECT 접수번호, 접수일자, 시험구분, 진행상황, 품목코드,
                            적합여부, 시험담당자, 접수비고
-                    FROM 접수 
+                    FROM 접수
                     WHERE 접수일자 = CURDATE()
                     ORDER BY 접수번호 DESC
                 """)
@@ -53,7 +57,7 @@ class Handler(BaseHTTPRequestHandler):
                 cur.execute("""
                     SELECT 접수번호, 접수일자, 시험구분, 진행상황, 품목코드,
                            적합여부, 시험담당자
-                    FROM 접수 
+                    FROM 접수
                     WHERE 진행상황 = 5
                     ORDER BY 접수일자 DESC
                 """)
@@ -64,20 +68,7 @@ class Handler(BaseHTTPRequestHandler):
                     r['적합여부_text'] = 적합여부.get(r.get('적합여부'), '미정')
                 result = {'결재대기': len(rows), 'data': rows}
 
-            elif path == '/fail':
-                cur.execute("""
-                    SELECT 접수번호, 접수일자, 시험구분, 품목코드, 적합여부, 시험담당자
-                    FROM 접수 
-                    WHERE 적합여부 = 0
-                    ORDER BY 접수일자 DESC
-                    LIMIT 20
-                """)
-                rows = cur.fetchall()
-                for r in rows:
-                    r['적합여부_text'] = '부적합'
-                    r['시험구분_text'] = 시험구분.get(r.get('시험구분'), '알수없음')
-                result = {'부적합건수': len(rows), 'data': rows}
-elif path == '/pending_detail':
+            elif path == '/pending_detail':
                 cur.execute("""
                     SELECT a.접수번호, a.접수일자, a.품목코드,
                            b.검사항목, b.기준값, b.측정값, b.적합여부, b.단위
@@ -88,6 +79,21 @@ elif path == '/pending_detail':
                 """)
                 rows = cur.fetchall()
                 result = {'count': len(rows), 'data': rows}
+
+            elif path == '/fail':
+                cur.execute("""
+                    SELECT 접수번호, 접수일자, 시험구분, 품목코드, 적합여부, 시험담당자
+                    FROM 접수
+                    WHERE 적합여부 = 0
+                    ORDER BY 접수일자 DESC
+                    LIMIT 20
+                """)
+                rows = cur.fetchall()
+                for r in rows:
+                    r['적합여부_text'] = '부적합'
+                    r['시험구분_text'] = 시험구분.get(r.get('시험구분'), '알수없음')
+                result = {'부적합건수': len(rows), 'data': rows}
+
             elif path == '/summary':
                 cur.execute("""
                     SELECT 진행상황, COUNT(*) as 건수
@@ -101,7 +107,7 @@ elif path == '/pending_detail':
                 result = {'이번주현황': rows}
 
             else:
-                result = {'error': 'not found', 'available': ['/today', '/pending', '/fail', '/summary']}
+                result = {'error': 'not found'}
 
             conn.close()
         except Exception as e:
