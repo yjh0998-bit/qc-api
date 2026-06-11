@@ -68,18 +68,9 @@ class Handler(BaseHTTPRequestHandler):
                     r['적합여부_text'] = 적합여부.get(r.get('적합여부'), '미정')
                 result = {'결재대기': len(rows), 'data': rows}
 
-            elif path == '/pending_detail':
-                cur.execute("""
-                    SELECT a.접수번호, a.접수일자, a.품목코드,
-                           b.검사항목, b.기준값, b.측정값, b.적합여부, b.단위
-                    FROM 접수 a
-                    JOIN 의뢰항목 b ON a.접수번호 = b.접수번호
-                    WHERE a.진행상황 = 5
-                    ORDER BY a.접수일자 DESC
-                """)
-                rows = cur.fetchall()
-                result = {'count': len(rows), 'data': rows}
-
+          elif path == '/pending_detail':
+                cur.execute('DESCRIBE 의뢰항목')
+                result = {'columns': cur.fetchall()}
             elif path == '/fail':
                 cur.execute("""
                     SELECT 접수번호, 접수일자, 시험구분, 품목코드, 적합여부, 시험담당자
