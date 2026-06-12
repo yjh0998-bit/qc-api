@@ -56,7 +56,7 @@ class H(BaseHTTPRequestHandler):
             elif p == '/report':
                 cur.execute('SELECT (SELECT COUNT(*) FROM 접수 WHERE 접수일자=CURDATE()) as 오늘접수, (SELECT COUNT(*) FROM 접수 WHERE 진행상황=5) as 결재대기, (SELECT COUNT(*) FROM 접수 WHERE 진행상황=5 AND DATEDIFF(CURDATE(),접수일자)>30) as 초과30일, (SELECT COUNT(*) FROM 의뢰항목 b JOIN 접수 a ON a.접수번호=b.접수번호 WHERE a.진행상황=5 AND b.적합판정=0) as 부적합건수')
                 summary = cur.fetchone()
-                cur.execute('SELECT a.접수번호, a.접수일자, a.품목코드, a.시험구분, a.시험담당자, DATEDIFF(CURDATE(),a.접수일자) as 경과일, GROUP_CONCAT(CASE WHEN b.적합판정=0 THEN CONCAT(b.검사항목,":",b.검사결과) END SEPARATOR " | ") as 부적합항목 FROM 접수 a LEFT JOIN 의뢰항목 b ON a.접수번호=b.접수번호 WHERE a.진행상황=5 GROUP BY a.접수번호 ORDER BY a.접수일자 DESC')
+                cur.execute('SELECT a.접수번호, a.접수일자, a.품목코드, a.시험구분, a.시험담당자, a.접수비고, DATEDIFF(CURDATE(),a.접수일자) as 경과일, GROUP_CONCAT(CASE WHEN b.적합판정=0 THEN CONCAT(b.검사항목,":",b.검사결과) END SEPARATOR " | ") as 부적합항목 FROM 접수 a LEFT JOIN 의뢰항목 b ON a.접수번호=b.접수번호 WHERE a.진행상황=5 GROUP BY a.접수번호 ORDER BY a.접수일자 DESC')
                 pending = cur.fetchall()
                 r = {'요약': summary, '결재대기목록': pending}
             elif p == '/summary':
