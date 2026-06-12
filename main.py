@@ -13,21 +13,31 @@ DB = {
     'charset': 'utf8mb4'
 }
 
-def conn():
+def get_db():
     return pymysql.connect(**DB)
 
 class H(BaseHTTPRequestHandler):
+    def send_cors(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', '*')
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_cors()
+        self.end_headers()
+
     def do_GET(self):
         p = urlparse(self.path).path
         self.send_response(200)
-        self.send_header('Content-Type','application/json; charset=utf-8')
-        self.send_header('Access-Control-Allow-Origin','*')
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_cors()
         self.end_headers()
         try:
-            c = conn()
+            c = get_db()
             cur = c.cursor(pymysql.cursors.DictCursor)
             if p == '/':
-                r = {'status':'ok'}
+                r = {'status': 'ok'}
             elif p == '/tables':
                 cur.execute('SHOW TABLES')
                 r = {'tables': cur.fetchall()}
@@ -47,14 +57,15 @@ class H(BaseHTTPRequestHandler):
                 cur.execute('SELECT 진행상황,COUNT(*) as cnt FROM 접수 WHERE 접수일자>=DATE_SUB(CURDATE(),INTERVAL 7 DAY) GROUP BY 진행상황')
                 r = {'data': cur.fetchall()}
             else:
-                r = {'error':'not found'}
+                r = {'error': 'not found'}
             c.close()
         except Exception as e:
             r = {'error': str(e)}
-        self.wfile.write(json.dumps(r,ensure_ascii=False,default=str).encode())
-    def log_message(self,f,*a):
+        self.wfile.write(json.dumps(r, ensure_ascii=False, default=str).encode())
+
+    def log_message(self, f, *a):
         pass
 
-if __name__=='__main__':
-    port = int(os.environ.get('PORT',8080))
-    HTTPServer(('0.0.0.0',port),H).serve_forever()
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8080))
+    HTTPServer(('0.0.0.0', port), H).serve_forever()
