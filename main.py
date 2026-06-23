@@ -62,6 +62,21 @@ class H(BaseHTTPRequestHandler):
             elif p == '/summary':
                 cur.execute('SELECT 진행상황,COUNT(*) as cnt FROM 접수 WHERE 접수일자>=DATE_SUB(CURDATE(),INTERVAL 7 DAY) GROUP BY 진행상황')
                 r = {'data': cur.fetchall()}
+            elif p == '/items_with_date':
+                codes = self.path.split('codes=')[1].split(',') if 'codes=' in self.path else []
+                if not codes:
+                    r = {'error': 'codes parameter required'}
+                else:
+                    result_list = []
+                    for code in codes:
+                        cur.execute('SELECT 접수번호, 접수일자, 입고제조일자, 품목코드, 시험구분, 적합여부, 시험담당자, 검사완료일, 접수비고 FROM 접수 WHERE 품목코드=%s AND 진행상황=6 ORDER BY 접수일자 DESC LIMIT 1', (code,))
+                        latest = cur.fetchone()
+                        if latest:
+                            cur.execute('SELECT 검사항목, 기준규격, 검사결과, 적합판정 FROM 의뢰항목 WHERE 접수번호=%s', (latest['접수번호'],))
+                            items = cur.fetchall()
+                            latest['검사상세'] = items
+                        result_list.append({'품목코드': code, '최근검사': latest})
+                    r = {'data': result_list}
             elif p == '/latest_by_items':
                 codes = self.path.split('codes=')[1].split(',') if 'codes=' in self.path else []
                 if not codes:
