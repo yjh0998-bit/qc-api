@@ -92,6 +92,20 @@ class H(BaseHTTPRequestHandler):
                             latest['검사상세'] = items
                         result_list.append({'품목코드': code, '최근검사': latest})
                     r = {'data': result_list}
+            elif p == '/year_inspection':
+                codes = self.path.split('codes=')[1].split('&')[0].split(',') if 'codes=' in self.path else []
+                if not codes:
+                    r = {'error': 'codes parameter required'}
+                else:
+                    result_list = []
+                    for code in codes:
+                        cur.execute('SELECT 접수번호, 접수일자, 입고제조일자, 품목코드, 시험구분, 적합여부, 시험담당자, 검사완료일, 접수비고 FROM 접수 WHERE 품목코드=%s AND 시험구분=1 AND YEAR(접수일자)=2026 ORDER BY 접수일자 ASC', (code,))
+                        records = cur.fetchall()
+                        for rec in records:
+                            cur.execute('SELECT 검사항목, 기준규격, 검사결과, 적합판정 FROM 의뢰항목 WHERE 접수번호=%s', (rec['접수번호'],))
+                            rec['검사상세'] = cur.fetchall()
+                        result_list.append({'품목코드': code, '입고검사목록': records})
+                    r = {'data': result_list}
             else:
                 r = {'error': 'not found'}
             c.close()
